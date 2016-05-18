@@ -100,7 +100,7 @@ def edgeDetect(arrayIn, matEdge):
 	#print("using edge matrix:\n")
 	#print(matEdge)
 
-	mat3x3kernel = np.ndarray((3, 3), dtype=np.float)
+	img3x3window = np.ndarray((3, 3), dtype=np.float)
 	mat3x3edge = np.ndarray((3, 3), dtype=np.float)
 
 	#Avoid looping all the way to the edge of the array since we will
@@ -116,20 +116,19 @@ def edgeDetect(arrayIn, matEdge):
 			#Construct a 3x3 kernel at this location
 			for ypix in range(3):
 				for xpix in range(3):
-					mat3x3kernel[ypix, xpix] = arrayIn[j + ypix, i + xpix]
+					img3x3window[ypix, xpix] = arrayIn[j + ypix, i + xpix]
 
-			#print("pixel 3x3 kernel")
-			#print(mat3x3kernel);
-
-			#Multiply 3x3 kernel by our edge matrix
-			mat3x3edge = np.dot(matEdge, mat3x3kernel)
+			#Multiply each matrix element-wise, then sum to get a single value
+			mat3x3edge = np.multiply(matEdge, img3x3window)
+			arraysum = np.sum(mat3x3edge)
 			#print("\n3x3 edge")
 			#print(mat3x3edge)
 			
+			arrayOut[j, i] = arraysum
 			#Add our edge-processed kernel to our output array
-			for ypix in range(3):
-				for xpix in range(3):
-					arrayOut[j + ypix, i + xpix] += mat3x3edge[ypix, xpix]
+			#for ypix in range(3):
+				#for xpix in range(3):
+					#arrayOut[j + ypix, i + xpix] += mat3x3edge[ypix, xpix]
 
 			#print("arrayOut:")
 			#print(arrayOut)
@@ -143,7 +142,7 @@ def edgeDetect(arrayIn, matEdge):
 #-2  0  2
 #-1  0  1
 #Return (x, y) array
-def horizEdgeDetection(arrayIn):
+def vertEdgeDetection(arrayIn):
 	if (isinstance(arrayIn, np.ndarray) != True):
 		print("Bad input, expected numpy.ndarray")
 		return np.ndarray((0, 0), np.uint8)
@@ -176,7 +175,7 @@ def horizEdgeDetection(arrayIn):
 # 0  0  0
 #-1 -2 -1
 #Return (x, y) array
-def vertEdgeDetection(arrayIn):
+def horizEdgeDetection(arrayIn):
 	if (isinstance(arrayIn, np.ndarray) != True):
 		print("Bad input, expected numpy.ndarray")
 		return np.ndarray((0, 0), np.uint8)
