@@ -49,7 +49,7 @@ def testArrayShape(arrayIn, desiredShape, desiredType):
 
 #Take a ndarray of shape (x, y, 3), type uint8
 #Return greyscaled ndarray of shape (x, y), type uint8
-def bmp2greyArray(array):
+def toArray(array):
 	if (testArrayShape(array, (-1, -1, 3), np.uint8) is False):
 		return np.ndarray((0, 0), np.uint8)
 
@@ -95,7 +95,7 @@ def normalizeArray(arrayIn):
 #Take a ndarray of shape (x, y), type uint8
 #Return expanded array of shape (x, y, 3), type uint8
 #RGB values will all be equal
-def array2bmp(arrayIn):
+def toBmp(arrayIn):
 	if (testArrayShape(arrayIn, (-1, -1), -1) is False):
 		return np.ndarray((0, 0, 3), np.uint8)
 
@@ -110,10 +110,117 @@ def array2bmp(arrayIn):
 
 	return arrayBmp
 
+def toRedBmp(arrayIn):
+	if (testArrayShape(arrayIn, (-1, -1), -1) is False):
+		return np.ndarray((0, 0, 3), np.uint8)
+
+	xSize = arrayIn.shape[0]
+	ySize = arrayIn.shape[1]
+	arrayBmp = np.ndarray((xSize, ySize, 3), np.uint8)
+
+	for j in range(ySize):
+		for i in range(xSize):
+			grey = arrayIn[i, j]
+			if (grey < 255):
+				arrayBmp[i, j] = [255, grey, grey]
+			else:
+				arrayBmp[i, j] = [255, 255, 255]
+
+	return arrayBmp
+
+#Element-wise addition of two equal-size arrays, followed by normalization
+def addArrays(arrayIn1, arrayIn2):
+	if (testArrayShape(arrayIn1, (-1, -1), -1) is False):
+		return np.ndarray((0, 0), np.uint8)
+	if (testArrayShape(arrayIn2, (-1, -1), -1) is False):
+		return np.ndarray((0, 0), np.uint8)
+
+	if (arrayIn1.shape[0] != arrayIn2.shape[0]):
+		print("Mismatched size, axis 0")
+		return np.ndarray((0, 0), np.uint8)
+	if (arrayIn1.shape[1] != arrayIn2.shape[1]):
+		print("Mismatched size, axis 1")
+		return np.ndarray((0, 0), np.uint8)
+
+	xSize = arrayIn1.shape[0]
+	ySize = arrayIn1.shape[1]
+	arrayOut = np.ndarray((xSize, ySize), np.float)
+
+	for j in range(arrayIn1.shape[0]):
+		for i in range(arrayIn1.shape[1]):
+			arrayOut[i, j] = float(arrayIn1[i, j]) + float(arrayIn2[i, j])
+
+	return normalizeArray(arrayOut)
+
+def addImgs(imgIn1, imgIn2):
+	greyArray1 = toArray(imgIn1)
+	greyArray2 = toArray(imgIn2)
+	sumArray = addArrays(greyArray1, greyArray2)
+	bmpImg = toBmp(sumArray)
+	return bmpImg
+
+#places overlayImg "on top" of baseImg
+#assumes that white is "transparent"
+def overlayImg(baseImg, overlayImg):
+	if (testArrayShape(baseImg, (-1, -1, 3), np.uint8) is False):
+		return np.ndarray((0, 0, 3), np.uint8)
+	if (testArrayShape(overlayImg, (-1, -1, 3), np.uint8) is False):
+		return np.ndarray((0, 0, 3), np.uint8)
+
+	if (baseImg.shape[0] != overlayImg.shape[0]):
+		print("Mismatched size, axis 0")
+		return np.ndarray((0, 0, 3), np.uint8)
+	if (baseImg.shape[1] != overlayImg.shape[1]):
+		print("Mismatched size, axis 1")
+		return np.ndarray((0, 0, 3), np.uint8)
+	
+
+	xSize = baseImg.shape[0]
+	ySize = baseImg.shape[1]
+	imgOut = np.ndarray((xSize, ySize, 3), np.float)
+
+	for x in range(xSize):
+		for y in range(ySize):
+			imgOut[x, y] = baseImg[x, y]
+
+			if (overlayImg[x, y, 0] != 255):
+				newVal = (imgOut[x, y, 0] + overlayImg[x, y, 0]) / 2
+				imgOut[x, y, 0] = newVal
+			if (overlayImg[x, y, 1] != 255):
+				newVal = (imgOut[x, y, 1] + overlayImg[x, y, 1]) / 2
+				imgOut[x, y, 1] = newVal
+			if (overlayImg[x, y, 2] != 255):
+				newVal = (imgOut[x, y, 2] + overlayImg[x, y, 2]) / 2
+				imgOut[x, y, 2] = newVal
+
+	return imgOut
+
+#Black to white, white to black
+def invGreyScaleArray(arrayIn):
+	if (testArrayShape(arrayIn, (-1, -1), np.uint8) is False):
+		return np.ndarray((0, 0), np.uint8)
+
+	xSize = arrayIn.shape[0]
+	ySize = arrayIn.shape[1]
+
+	arrayOut = np.zeros(arrayIn.shape, np.uint8)
+
+	for x in range(xSize):
+		for y in range(ySize):
+			arrayOut[x, y] = 255 - arrayIn[x, y]
+
+	return arrayOut
+
+
+def invGreyScaleImg(imgIn):
+	greyArray = toArray(imgIn)
+	invArray = invGreyScaleArray(greyArray)
+	invBmp = toBmp(invArray)
+	return invBmp
 
 #Take a ndarray of shape (x, y), type uint8
 #Run filter on each 3x3 area of pixels
-def filterize(arrayIn, filter3x3):
+def filterArray(arrayIn, filter3x3):
 	if (testArrayShape(arrayIn, (-1, -1), np.uint8) is False):
 		return np.ndarray((0, 0, 3), np.uint8)
 
@@ -154,14 +261,14 @@ def filterize(arrayIn, filter3x3):
 	return arrayOut
 
 
-def runFilter(arrayIn, kernel):
+def filterImg(arrayIn, kernel):
 	if (testArrayShape(arrayIn, (-1, -1, 3), np.uint8) is False):
 		return np.ndarray((0, 0, 3), np.uint8)
 
-	greyImg = bmp2greyArray(arrayIn)
-	filteredImg = filterize(greyImg, kernel)
+	greyImg = toArray(arrayIn)
+	filteredImg = filterArray(greyImg, kernel)
 	normImg = normalizeArray(filteredImg)
-	bmpImg = array2bmp(normImg)
+	bmpImg = toBmp(normImg)
 
 	return bmpImg
 
