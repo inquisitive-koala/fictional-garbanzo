@@ -4,7 +4,7 @@ import imgTools as it
 DTHETA = 0.01
 DR = .5
 EDGE_THRESH = 40
-ACCUM_THRESH = 30
+ACCUM_THRESH = 0.30
 
 def round_to(n, prec):
 	corr = 0.5 if n >= 0 else -0.5
@@ -56,22 +56,8 @@ def houghTransImg(imgIn):
 	imgOut = it.toBmp(houghArray)
 	return imgOut
 
-def reverseHoughTrans(accumArray, shapeOut):
-	#Plan:
-	#Create empty array of appropriate size, give shapeOut
-	#For each theta:
-		#For each R:
-			#If value at theta, R is above threshold then
-			#For x=0 to x=xSize:
-				#solve for y 
-				#draw point x, y
-		#Special case theta=0:
-		#For each R:
-			#If value at theta, R is above threshold then
-			#For y=0 to y=ySize:
-				#solve for x 
-				#draw point x, y
-	if (it.testArrayShape(accumArray, (-1, -1), np.uint) is False):
+def unHoughTrans(accumArray, shapeOut):
+	if (it.testArrayShape(accumArray, (-1, -1), -1) is False):
 		return np.ndarray(shapeOut, np.uint8)
 
 	arrayOut = np.zeros(shapeOut, np.uint)
@@ -81,21 +67,26 @@ def reverseHoughTrans(accumArray, shapeOut):
 	thetaSize = accumArray.shape[0]
 	rSize = accumArray.shape[1]
 
+	thresh = np.amax(accumArray) * ACCUM_THRESH
+	print("using threshold of " + str(thresh))
+
 	for thetaStep in range(thetaSize):
 		theta = thetaStep * DTHETA
 		for rStep in range(rSize):
 			r = rStep * DR
 
-			if (accumArray[thetaStep, rStep] < ACCUM_THRESH):
+			if (accumArray[thetaStep, rStep] < thresh):
 				continue
 
-			print("Adding line: theta=" + str(theta) + ", R=" + str(r))
+			print("Adding line: " + \
+				"accumArray[theta=" + str(theta) + "], R=" + str(r) + "]=" + \
+				str(accumArray[thetaStep, rStep]))
 
 			#Step x, solve for y
 			if (np.abs(np.sin(theta)) > 0.05):
 				for x in range(xSize):
 					y = (r - x * np.cos(theta)) / np.sin(theta)
-					if (y > 0 and y < ySize):
+					if (y > 0 and y < (ySize - 1)):
 						y = round_to(y, 1)
 						arrayOut[x, y] += 1
 
@@ -103,10 +94,22 @@ def reverseHoughTrans(accumArray, shapeOut):
 			else:
 				for y in range(ySize):
 					x = (r - y * np.sin(theta)) / np.cos(theta)
-					if (x > 0 and x < xSize):
+					if (x > 0 and x < (xSize - 1)):
 						x = round_to(x, 1)
 						arrayOut[x, y] += 1
 
 
 	return it.normalizeArray(arrayOut)
+
+
+def unHoughTransImg(accumArrayImg, shapeOut):
+	if (it.testArrayShape(accumArrayImg, (-1, -1, 3), -1) is False):
+		return np.ndarray((0, 0, 3), np.uint8)
+
+	shapeOut = (shapeOut[0], shapeOut[1])
+	arrayIn = it.toArray(accumArrayImg)
+	unHoughArray = unHoughTrans(arrayIn, shapeOut)
+	imgOut = it.toBmp(unHoughArray)
+	return imgOut
+
 

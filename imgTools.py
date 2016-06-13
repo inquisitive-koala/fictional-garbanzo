@@ -1,6 +1,7 @@
 #Some common image manipulation tools we'll need
 from scipy import misc
 import numpy as np
+import traceback as tb
 
 
 horizKernel = np.ndarray((3, 3), dtype=np.float)
@@ -12,14 +13,21 @@ vertKernel = [[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]]
 avgKernel = np.ndarray((3, 3), dtype=np.float)
 avgKernel = [[1, 1, 1], [1, 1, 1], [1, 1, 1]]
 
+def print_stack():
+	for line in tb.format_stack():
+		print(line.strip())
+	print
+
 def testArrayShape(arrayIn, desiredShape, desiredType):
 	#Test it is np.ndarray
 	if (isinstance(arrayIn, np.ndarray) != True):
+		print_stack()
 		print("Bad input, expected numpy.ndarray")
 		return False
 
 	#Test overall shape
 	if (len(arrayIn.shape) != len(desiredShape)):
+		print_stack()
 		print("Incorrect array shape:")
 		print("Expected " + str(desiredShape))
 		print("Received " + str(arrayIn.shape))
@@ -32,6 +40,7 @@ def testArrayShape(arrayIn, desiredShape, desiredType):
 			continue
 
 		if (arrayIn.shape[x] != desiredShape[x]):
+			print_stack()
 			print("Incorrect array shape:")
 			print("Expected " + str(desiredShape))
 			print("Received " + str(arrayIn.shape))
@@ -40,6 +49,7 @@ def testArrayShape(arrayIn, desiredShape, desiredType):
 	#Test data type
 	if (desiredType != -1):
 		if (arrayIn.dtype != desiredType):
+			print_stack()
 			print("Bad array type:")
 			print("Expected " + str(desiredType))
 			print("Received " + str(arrayIn.dtype))
@@ -111,6 +121,10 @@ def toBmp(arrayIn):
 	return arrayBmp
 
 def toRedBmp(arrayIn):
+	#Convert to array if input is in Img form
+	if (testArrayShape(arrayIn, (-1, -1, 3), -1)):
+		arrayIn = toArray(arrayIn)
+
 	if (testArrayShape(arrayIn, (-1, -1), -1) is False):
 		return np.ndarray((0, 0, 3), np.uint8)
 
@@ -237,23 +251,19 @@ def filterArray(arrayIn, filter3x3):
 	#Avoid looping all the way to the edge of the array since we will
 	#read pixels up to 2 steps ahead of the current index
 	for j in range(0, ySize - 2):
-		if (j >= ySize):
-			break
 		for i in range(0, xSize - 2):
-			if (i >= xSize):
-				break
 
 			#print("\n" + str(j) + ", " + str(i) + ":")
 			#Construct a 3x3 kernel at this location
 			for ypix in range(3):
 				for xpix in range(3):
-					img3x3window[ypix, xpix] = arrayIn[j + ypix, i + xpix]
+					img3x3window[xpix, ypix] = arrayIn[i + xpix, j + ypix]
 
 			#Multiply each matrix element-wise, then sum to get a single value
 			result = np.multiply(filter3x3, img3x3window)
 			arraysum = np.sum(result)
 			
-			arrayOut[j, i] = arraysum
+			arrayOut[i, j] = arraysum
 
 	#print("arrayOut:")
 	#print(arrayOut)
