@@ -1,3 +1,11 @@
+# Note that the show* functions won't return until the image window is closed.
+#
+# Usage: 
+# letter_data = readTaskarData('data')
+# showLetter(letter_data['1'])
+# all_words = getWords(letter_data)
+# showWord(all_words['1'])
+
 from matplotlib import pyplot as plt
 from collections import defaultdict
 import numpy as np
@@ -10,6 +18,7 @@ def showWord(word):
 	letter_images = [l['image'] for l in word]
 	word_image = np.hstack(letter_images)
 	plt.imshow(1 - word_image, interpolation='nearest', cmap='Greys')
+	plt.title(wordText(word))
 	plt.show()
 
 def getWords(letter_data):
@@ -30,3 +39,4 @@ def getWords(letter_data):
 
 def wordText(word):
 	return ''.join([l['letter'] for l in word])
+
