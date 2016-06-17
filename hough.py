@@ -12,6 +12,7 @@ def round_to(n, prec):
 
 #Input (x, y) array of uint8
 #Output (theta, r) array of uint
+#Todo: Pre-calculate sin and cos values to speed up function
 def houghTrans(arrayIn):
 	if (it.testArrayShape(arrayIn, (-1, -1), np.uint8) is False):
 		return np.ndarray((0, 0), np.uint)
@@ -20,7 +21,7 @@ def houghTrans(arrayIn):
 	ySize = arrayIn.shape[1]
 
 	#number of steps of theta
-	thetaSize = int(2 * np.pi / DTHETA)
+	thetaSize = int(np.pi / DTHETA)
 	#largest possible R is the diagonal of the input array
 	rSize = int(np.sqrt(xSize * xSize + ySize * ySize) / DR)
 
@@ -56,7 +57,8 @@ def houghTransImg(imgIn):
 	imgOut = it.toBmp(houghArray)
 	return imgOut
 
-def unHoughTrans(accumArray, shapeOut):
+
+def unHoughTrans(accumArray, shapeOut, centerTheta=None, thetaWidth=None):
 	if (it.testArrayShape(accumArray, (-1, -1), -1) is False):
 		return np.ndarray(shapeOut, np.uint8)
 
@@ -70,8 +72,36 @@ def unHoughTrans(accumArray, shapeOut):
 	thresh = np.amax(accumArray) * ACCUM_THRESH
 	print("using threshold of " + str(thresh))
 
+	if (centerTheta != None and thetaWidth != None):
+		lowRange = centerTheta - thetaWidth
+		if (lowRange < 0):
+			lowRange += np.pi
+		if (lowRange > np.pi):
+			lowRange -= np.pi
+
+		highRange = centerTheta + thetaWidth
+		if (highRange < 0):
+			highRange += np.pi
+		if (highRange > np.pi):
+			highRange -= np.pi
+
+		print("Ignoring theta values outside of (" + \
+			str(lowRange) + "," + str(highRange) + ")")
+
 	for thetaStep in range(thetaSize):
 		theta = thetaStep * DTHETA
+
+		if (lowRange > highRange):
+			if (theta < lowRange and theta > highRange):
+				print("theta=" + str(theta) + " outside of (" + \
+					str(lowRange) + "," + str(highRange) + ")")
+				continue
+		else:
+			if (theta < lowRange or theta > highRange):
+				print("theta=" + str(theta) + " outside of (" + \
+					str(lowRange) + "," + str(highRange) + ")")
+				continue
+
 		for rStep in range(rSize):
 			r = rStep * DR
 
@@ -102,14 +132,17 @@ def unHoughTrans(accumArray, shapeOut):
 	return it.normalizeArray(arrayOut)
 
 
-def unHoughTransImg(accumArrayImg, shapeOut):
+def unHoughTransImg(accumArrayImg, shapeOut, centerTheta=None, thetaWidth=None):
 	if (it.testArrayShape(accumArrayImg, (-1, -1, 3), -1) is False):
 		return np.ndarray((0, 0, 3), np.uint8)
 
 	shapeOut = (shapeOut[0], shapeOut[1])
 	arrayIn = it.toArray(accumArrayImg)
-	unHoughArray = unHoughTrans(arrayIn, shapeOut)
+	unHoughArray = unHoughTrans(arrayIn, shapeOut, centerTheta, thetaWidth)
 	imgOut = it.toBmp(unHoughArray)
 	return imgOut
 
 
+
+#Idea:
+#Use the sum of a row of theta/R values to determine which theta has the most lines
